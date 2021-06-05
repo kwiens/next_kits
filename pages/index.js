@@ -2,6 +2,22 @@ import { request } from '../lib/datocms'
 import { Image, renderMetaTags } from 'react-datocms'
 import Link from 'next/link'
 import { LinkOverlay, Button, Flex, Center, Grid, SimpleGrid, GridItem, Box, Heading } from '@chakra-ui/react'
+import algoliasearch from 'algoliasearch/lite';
+import {
+   InstantSearch,
+   Hits,
+   SearchBox,
+   Pagination,
+   Highlight,
+   ClearRefinements,
+   RefinementList,
+   Configure,
+ } from 'react-instantsearch-dom';
+
+var searchClient = algoliasearch(
+   "XQEP3AD9ZT",
+   "118b51a67eefbe4d3c445d1e1090afac"
+ );
 
 const HOMEPAGE_QUERY = `
 query BatteryFixKits {
@@ -74,11 +90,44 @@ function Product(product) {
    return (
       <Box width="280px" minHeight="400px" key={product.id}>
          <Center>
-            <Heading>{product.productcode}</Heading>
+            <Heading>{formatProductcode(product.productcode)}</Heading>
          </Center>
+
+         {/*
+            Amazingly, it was easier to throw a full blown search box in here to 
+            display one result than to grab a single result directly
+         */}
+         <InstantSearch 
+            indexName="shopify_ifixit_test_products" 
+            query="spudger"
+            searchClient={searchClient}
+            >
+         <SearchBox defaultRefinement={formatProductcode(product.productcode)} />
+
+         <Configure hitsPerPage={1} />
+         <Hits hitComponent={Hit} />
+        </InstantSearch>
       </Box>
    )
 }
+
+function Hit(props) {
+   return (
+     <div>
+       <img src={props.hit.image} align="left" alt={props.hit.name} />
+       <div className="hit-name">
+         <Highlight attribute="title" hit={props.hit} />
+       </div>
+       <div className="hit-sku">
+         <Highlight attribute="sku" hit={props.hit} />
+       </div>
+       <div className="hit-description">
+         <Highlight attribute="description" hit={props.hit} />
+       </div>
+       <div className="hit-price">${props.hit.price}</div>
+     </div>
+   );
+ }
 
 function Featured(entry) {
    return (
@@ -102,4 +151,9 @@ function Featured(entry) {
          </Grid>
       </Box>
    )
+}
+
+function formatProductcode(num) {
+   num = new String(num)
+   return "IF" + num.substring(0,3) + "-" + num.substring(3,6)
 }
